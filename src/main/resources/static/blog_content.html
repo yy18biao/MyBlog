@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>博客正文</title>
+        <link rel="stylesheet" href="css/conmmon.css">
+        <link rel="stylesheet" href="css/blog_content.css">
+        <link rel="stylesheet" href="css/blog_list.css">
+        <link rel="stylesheet" href="editor.md/css/editormd.preview.min.css" />
+        <script src="js/jquery.min.js"></script>
+        <script src="js/logout.js"></script>
+        <script src="js/urltools.js"></script>
+        <script src="editor.md/editormd.js"></script>
+        <script src="editor.md/lib/marked.min.js"></script>
+        <script src="editor.md/lib/prettify.min.js"></script>
+    </head>
+
+    <body>
+        <!-- 导航栏 -->
+        <div class="nav">
+            <img src="img/logo2.jpg" alt id="navimg">
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title" id="nameforuser">我的博客系统</span>
+            <!-- 用来占据中间位置 -->
+            <span class="spacer"></span>
+            <a href="blog_list.html">主页</a>
+
+            <span id="islogin" style="display: none;">
+                <a href="myblog_list.html">个人主页</a>
+                <a href="blog_edit.html">写博客</a>
+                <a href="javascript:logout()">注销</a>
+            </span>
+
+            <a id="nologin" href="login.html">登录</a>
+        </div>
+        <!-- 版心 -->
+        <div class="container">
+            <!-- 右侧内容详情 -->
+            <div class="container-right">
+                <div class="blog-content">
+                    <!-- 博客标题 -->
+                    <h3 id="title"></h3>
+                    <div class="date">
+                        作者：
+                        <span id="author"></span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        阅读量：
+                        <span id="rcount"></span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        发布时间：
+                        <span id="createtime"></span>
+                    </div>
+                    <!-- 博客正文 -->
+                    <div id="editorDiv">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+        var editormd;
+        var id = 0;
+        function initEdit(md){
+            editormd = editormd.markdownToHTML("editorDiv", {
+            markdown : md, // Also, you can dynamic set Markdown text
+            // htmlDecode : true,  // Enable / disable HTML tag encode.
+            // htmlDecode : "style,script,iframe",  // Note: If enabled, you should filter some dangerous HTML tags for website security.
+            });
+        }
+        
+        function getData(){
+            id = getParamByKey("id");
+            if(id == null || id <= 0 || id == undefined){
+                alert("参数有误！");
+                return false;
+            }
+            jQuery.ajax({
+                url:"/art/getdatabyid",
+                type:"POST",
+                data:{
+                    "id":id
+                },
+                success:function(res){
+                    if(res.code == 200 && res.data.id > 0 && res.data != null){
+                        // 赋值给组件
+                        jQuery("#title").html(res.data.title);
+                        jQuery("#author").html(res.data.username);
+                        jQuery("#rcount").html(res.data.rcount);
+                        jQuery("#createtime").html(res.data.createtime);
+                        initEdit(res.data.content);
+                    }else{
+                        alert("操作失败：" + res.msg);
+                    }
+                }
+            });
+        }
+        getData();
+
+        // 阅读量增加
+        function addRcount(){
+            jQuery.ajax({
+                url:"/art/addrcount",
+                type:"POST",
+                data:{"id":id},
+                success:function(){}
+            });
+        }
+        addRcount()
+
+        // 判断用户是否已经登录
+        function isLogin(){
+            jQuery.ajax({
+                url:"/user/islogin",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code==200 && res.data==1){
+                        // 已经登录
+                        jQuery("#nologin").hide(); // 隐藏
+                        jQuery("#islogin").show(); // 显示
+                        jQuery("#left").show(); // 显示
+                        
+                        // 获取用户信息
+                        jQuery.ajax({
+                            url:"/user/getuser",
+                            type:"POST",
+                            data:{},
+                            success:function(res){
+                                if(res.code == 200){
+                                    // 获取用户名
+                                    var username = res.data.username;
+                                    document.getElementById("nameforuser").innerHTML = username;
+                                    // 显示头像
+                                    var imgElement = document.getElementById("navimg");
+                                    imgElement.src = "https://biao22.oss-cn-guangzhou.aliyuncs.com/" + res.data.photo;
+                                    // 获取文章数量
+                                    document.getElementById("count").innerHTML = res.data;
+                                }
+                            }
+                        });
+                    }else{
+                        jQuery("#nologin").show(); // 显示
+                        jQuery("#islogin").hide(); // 隐藏
+                        jQuery("#left").hide(); // 隐藏
+                    }
+                }
+            });
+        }
+        isLogin();
+
+    </script>
+    </body>
+
+</html>

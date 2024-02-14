@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.myblog.mapper.ArticleMapper">
+
+    <insert id="add">
+        insert into articleinfo(title, content, uid) value (#{title}, #{content}, #{uid})
+    </insert>
+
+    <update id="addRcount">
+        update articleinfo
+        set rcount = rcount + 1
+        where id = #{id}
+    </update>
+    <delete id="delArt">
+        delete
+        from articleinfo
+        where id = #{id}
+          and uid = #{uid}
+    </delete>
+
+    <select id="getDataByIdAndUid" resultType="com.example.myblog.entity.vo.ArticleVO">
+        select *
+        from articleinfo
+        where id = #{id}
+          and uid = #{uid}
+    </select>
+
+    <select id="getDataById" resultType="com.example.myblog.entity.vo.ArticleVO">
+        select a.*, u.username
+        from articleinfo a
+                 left join userinfo u on u.id = a.uid
+        where a.id = #{id}
+    </select>
+
+    <select id="getList" resultType="com.example.myblog.entity.vo.ArticleVO">
+        select id, title, createtime, content
+        from articleinfo
+        where uid = #{uid}
+        order by id desc
+            limit #{pageSize}
+        offset #{offset}
+    </select>
+    <select id="getArtListByPage" resultType="com.example.myblog.entity.vo.ArticleVO">
+        select *
+        from articleinfo
+        order by id desc
+            limit #{pageSize}
+        offset #{offset}
+    </select>
+    <select id="getArtNum" resultType="java.lang.Integer">
+        select count(id) from articleinfo
+    </select>
+
+    <select id="getUsernameByUid" resultType="java.lang.String">
+        select username from userinfo where id=#{uid}
+    </select>
+
+
+    <update id="updateByIdAndUid">
+        update articleinfo
+        set title     = #{title},
+            content   = #{content},
+            updatetime=#{updatetime}
+        where id = #{id}
+          and uid = #{uid}
+    </update>
+
+</mapper>

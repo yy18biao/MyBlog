@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客列表</title>
+    <link rel="stylesheet" href="css/list.css">
+    <link rel="stylesheet" href="css/blog_list.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/urltools.js"></script>
+    <script src="js/logout.js"></script>
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <div class="nav">
+        <img src="img/logo2.jpg" alt="" id="navimg">
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title" id="nameforuser">我的博客系统</span>
+        <!-- 用来占据中间位置 -->
+        <span class="spacer"></span>
+        <a href="blog_list.html">首页</a>
+
+        <span id="islogin" style="display: none;">
+            <a href="myblog_list.html">我的主页</a>
+            <a href="blog_add.html">发布文章</a>
+            <a href="javascript:logout()">注销</a>
+        </span>
+
+        <a id="nologin" href="login.html">登录</a>
+    </div>
+    <!-- 版心 -->
+    <div class="container">
+        <!-- 右侧内容详情 -->
+        <div class="container-right" style="width: 100%;">
+            <div id="artlist"></div>
+            <hr>
+            <div id="pageDiv" class="blog-pagnation-wrapper">
+                <button class="blog-pagnation-item" onclick="doFirst()">首页</button>
+                <button class="blog-pagnation-item" onclick="doPre()">上一页</button>
+                <button class="blog-pagnation-item" onclick="doNext()">下一页</button>
+                <button class="blog-pagnation-item" onclick="doLast()">末页</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var pageIndex = 1; // 当前页码（从1开始）
+        var pageSize = 3; // 每页显示最大条数
+        var pageCount = 1; // 总页数
+
+        // 初始化参数
+        function pageInit(){
+            var paramPageIndex = getParamByKey("pageIndex");
+            var paramPageSize = getParamByKey("pageSize");
+
+            if(paramPageIndex != null){
+                pageIndex = paramPageIndex;
+            }
+            if(paramPageSize != null){
+                pageSize = paramPageSize;
+            }
+
+            doAjax();
+        }
+        pageInit();
+
+        // 点击首页
+        function doFirst(){
+            if(pageIndex <= 1){
+                alert("当前已在首页！");
+                return false;
+            } 
+            pageIndex = 1;
+            location.href = "blog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击上一页
+        function doPre(){
+            if(pageIndex <= 1){
+                alert("当前已在首页！");
+                return false;
+            }
+            --pageIndex;
+            location.href = "blog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击下一页
+        function doNext(){
+            if(pageIndex >= pageCount){
+                alert("当前已在末页！");
+                return false;
+            }
+            ++pageIndex;
+            location.href = "blog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击末页
+        function doLast(){
+            if(pageIndex >= pageCount){
+                alert("当前已在末页！");
+                return false;
+            }
+            location.href = "blog_list.html?pageIndex=" + pageCount + "&pageSize=" + pageSize;
+        }
+
+        // 请求后端，得到数据并展示列表
+        function doAjax(){
+            jQuery.ajax({
+                url:"/art/getlistbypage",
+                type:"POST",
+                data:{
+                    "pageIndex":pageIndex,
+                    "pageSize":pageSize
+                },
+                success:function(res){
+                    if(res.code==200 && res.data.length>0){
+                        var artListHtml = "";
+                        for(var i = 0; i < res.data.length; i++){
+                            var item = res.data[i]; 
+                            artListHtml += '<div class="blog">'; 
+                            artListHtml += '<div class="title">' + item.title + '</div>';  
+                            artListHtml += '<div class="date">' + item.createtime + '</div>';
+                            artListHtml += '<div class="date">' + item.username + '</div>';
+                            artListHtml += '<div class="desc">' + item.content + '</div>';
+                            artListHtml += '<a href="blog_content.html?id=' + item.id + '" class="detail">查看全文&gt;&gt;</a>';
+                            artListHtml += '</div>';
+                        }
+                        jQuery("#artlist").html(artListHtml);
+                        jQuery("#pageDiv").show();
+                    }else{
+                        jQuery("#pageDiv").hide();
+                        jQuery("#artlist").html("<h2 style='margin-left:20px;margin-top:10px;'>暂无文章！</h2>");
+                    }
+                }
+            });
+            // 得到总页数
+            jQuery.ajax({
+                url:"/art/getcount",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code == 200 && res.data > 0){
+                        // 计算总页数
+                        pageCount = Math.ceil(res.data / pageSize);
+                    }
+                }
+            });
+        }
+
+        // 判断用户是否已经登录
+        function isLogin(){
+            jQuery.ajax({
+                url:"/user/islogin",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code==200 && res.data==1){
+                        // 已经登录
+                        jQuery("#nologin").hide(); // 隐藏
+                        jQuery("#islogin").show(); // 显示
+
+                        // 获取用户信息
+                        jQuery.ajax({
+                            url:"/user/getuser",
+                            type:"POST",
+                            data:{},
+                            success:function(res){
+                                if(res.code == 200){
+                                    // 获取用户名
+                                    var username = res.data.username;
+                                    document.getElementById("nameforuser").innerHTML = username;
+                                    if(res.data.photo == ""){
+                                        if(confirm("暂未设置头像，是否前往设置")){
+                                            location.href = "user_date.html";
+                                        }else{
+
+                                        }
+                                    }
+                                    // 显示头像
+                                    var imgElement = document.getElementById("navimg");
+                                    imgElement.src = "https://biao22.oss-cn-guangzhou.aliyuncs.com/" + res.data.photo;
+                                }
+                            }
+                        });
+                    }else{
+                        jQuery("#nologin").show(); // 显示
+                        jQuery("#islogin").hide(); // 隐藏
+                    }
+                }
+            });
+        }
+        isLogin();
+    </script>
+</body>
+</html>

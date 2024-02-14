@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>博客列表</title>
+        <link rel="stylesheet" href="css/conmmon.css">
+        <link rel="stylesheet" href="css/list.css">
+        <link rel="stylesheet" href="css/blog_list.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/logout.js"></script>
+        <script src="js/urltools.js"></script>
+    </head>
+
+    <body>
+        <!-- 导航栏 -->
+        <div class="nav">
+            <img src="img/logo2.jpg" alt="" id="navimg">
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title" id="nameforuser">我的博客系统</span>
+            <!-- 用来占据中间位置 -->
+            <span class="spacer"></span>
+            <a href="blog_list.html">主页</a>
+            <a href="user_date.html">个人信息</a>
+            <a href="blog_add.html">写博客</a>
+            <a href="javascript:logout()">注销</a>
+        </div>
+        <!-- 版心 -->
+        <div class="container">
+            <div class="container-right">
+                <div id="artlist"></div>
+                <hr>
+                <div id="pageDiv" class="blog-pagnation-wrapper">
+                    <p id="count"></p>
+                    <button class="blog-pagnation-item"
+                        onclick="doFirst()">首页</button>
+                    <button class="blog-pagnation-item"
+                        onclick="doPre()">上一页</button>
+                    <button class="blog-pagnation-item"
+                        onclick="doNext()">下一页</button>
+                    <button class="blog-pagnation-item"
+                        onclick="doLast()">末页</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        var pageIndex = 1; // 当前页码（从1开始）
+        var pageSize = 3; // 每页显示最大条数
+        var pageCount = 1; // 总页数
+
+        function getArtList(){
+            jQuery.ajax({
+                url:"/art/list",
+                type:"POST",
+                data:{
+                    "pageIndex":pageIndex,
+                    "pageSize":pageSize
+                },
+                success:function(res){
+                    if(res.code == 200 && res.data.length > 0){
+                        var arthtml = "";
+                        for(var i = 0; i < res.data.length; i++){
+                            var art = res.data[i];
+                            arthtml += '<div class="blog">';
+                            arthtml += '<div class="title">' + art.title + '</div>';
+                            arthtml += '<div class="date">' + art.createtime + '</div>';
+                            arthtml += '<div class="desc">';
+                            arthtml += art.content;
+                            arthtml += '</div>';
+                            arthtml += '<a href="blog_content.html?id=' + art.id +
+                                '" class="detail">查看全文&gt;&gt;</a>&nbsp;&nbsp;';
+                            arthtml += '<a href="blog_edit.html?id='+ art.id +
+                                '" class="detail">修改 &gt;&gt;</a>&nbsp;&nbsp;';
+                            arthtml += '<a href="javascript:del(' + art.id + ')" class="detail">删除 &gt;&gt;</a>';
+                            arthtml += '</div>';
+                        }
+                        jQuery("#artlist").html(arthtml);
+                    }else{
+                        // 没有文章
+                        jQuery("#artlist").html("<h3>没有文章信息</h3>")
+                    }
+                }
+            });
+        }
+
+        // 删除文章
+        function del(id){
+            if(confirm("确认删除？")){
+                jQuery.ajax({
+                    url:"/art/del",
+                    type:"POST",
+                    data:{"id":id},
+                    success:function(res){
+                        if(res.code == 200 && res.data == 1){
+                            alert("删除成功！");
+                            location.href = location.href;
+                        }else{
+                            alert("操作失败，请重试！" + res.msg);
+                        }
+                    }  
+                });
+            }
+        }
+
+        // 初始化参数
+        function pageInit(){
+            var paramPageIndex = getParamByKey("pageIndex");
+            var paramPageSize = getParamByKey("pageSize");
+
+            if(paramPageIndex != null){
+                pageIndex = paramPageIndex;
+            }
+            if(paramPageSize != null){
+                pageSize = paramPageSize;
+            }
+
+            getArtList();
+        }
+        pageInit();
+
+        // 获取用户信息
+        function getUser(){
+            jQuery.ajax({
+                url:"/user/getuser",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code == 200){
+                        var username = res.data.username;
+                        document.getElementById("nameforuser").innerHTML = username;
+                        var imgElement = document.getElementById("navimg");
+                        imgElement.src = "https://biao22.oss-cn-guangzhou.aliyuncs.com/" + res.data.photo;
+                        
+                    }
+                }
+            });
+        }
+        getUser();
+
+        // 点击首页
+        function doFirst(){
+            if(pageIndex <= 1){
+                alert("当前已在首页！");
+                return false;
+            } 
+            pageIndex = 1;
+            location.href = "myblog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击上一页
+        function doPre(){
+            if(pageIndex <= 1){
+                alert("当前已在首页！");
+                return false;
+            }
+            --pageIndex;
+            location.href = "myblog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击下一页
+        function doNext(){
+            if(pageIndex >= pageCount){
+                alert("当前已在末页！");
+                return false;
+            }
+            ++pageIndex;
+            location.href = "myblog_list.html?pageIndex=" + pageIndex + "&pageSize=" + pageSize;
+        }
+
+        // 点击末页
+        function doLast(){
+            if(pageIndex >= pageCount){
+                alert("当前已在末页！");
+                return false;
+            }
+            location.href = "myblog_list.html?pageIndex=" + pageCount + "&pageSize=" + pageSize;
+        }
+
+        // 得到总页数
+        jQuery.ajax({
+                url:"/art/getcount",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code == 200 && res.data > 0){
+                        // 计算总页数
+                        pageCount = Math.ceil(res.data / pageSize);
+                    }
+                }
+        });
+
+        // 获取文章数量
+        function getcount(){
+            jQuery.ajax({
+                url:"/user/getcount",
+                type:"POST",
+                data:{},
+                success:function(res){
+                    if(res.code==200 && res.data != null){
+                        document.getElementById("count").innerHTML = "文章总数：" + res.data;
+                    }else{
+                        
+                    }
+                }
+            });
+        }
+        getcount();
+
+    </script>
+    </body>
+
+</html>
